@@ -1,0 +1,8 @@
+venv/
+vector_desk/venv/
+__pycache__/
+*.pyc
+*.pyd
+*.dll
+*.lib
+.env
