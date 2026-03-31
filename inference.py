@@ -3,17 +3,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
-from openai import OpenAI
-from environment.env import VectorDeskEnv
-from environment.state import Action, ActionType, TaskType
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN", "")
-
-client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
 app = FastAPI()
-env = VectorDeskEnv()
+_env = None
+
+def get_env():
+    global _env
+    if _env is None:
+        from environment.env import VectorDeskEnv
+        _env = VectorDeskEnv()
+    return _env
 
 class ResetRequest(BaseModel):
     task_type: Optional[str] = "email"
@@ -25,6 +24,7 @@ class StepRequest(BaseModel):
 
 @app.post("/reset")
 def reset(req: ResetRequest = ResetRequest()):
+    env = get_env()
     obs = env.reset(task_type=req.task_type)
     return {
         "task_id": obs.task_id,
@@ -36,6 +36,8 @@ def reset(req: ResetRequest = ResetRequest()):
 
 @app.post("/step")
 def step(req: StepRequest):
+    from environment.state import Action, ActionType
+    env = get_env()
     action = Action(
         action_type=ActionType(req.action_type),
         task_type=env._state.current_task_type,
@@ -54,6 +56,7 @@ def step(req: StepRequest):
 
 @app.get("/state")
 def state():
+    env = get_env()
     s = env.state()
     return {
         "task_id": s.task_id,
