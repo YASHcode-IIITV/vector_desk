@@ -28,7 +28,7 @@ def reset(req: ResetRequest = ResetRequest()):
     obs = env.reset(task_type=req.task_type)
     return {
         "task_id": obs.task_id,
-        "task_type": obs.task_type.value,
+        "task_type": obs.task_type.value if hasattr(obs.task_type, 'value') else obs.task_type,
         "input_data": obs.input_data,
         "available_actions": obs.available_actions,
         "feedback": obs.feedback,
