@@ -3,6 +3,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
+from openai import OpenAI
+
+# Required env variables as per hackathon spec
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
 
 app = FastAPI()
 _env = None
@@ -24,8 +32,11 @@ class StepRequest(BaseModel):
 
 @app.post("/reset")
 def reset(req: ResetRequest = ResetRequest()):
+    print("START", flush=True)
     env = get_env()
     obs = env.reset(task_type=req.task_type)
+    print("STEP reset complete", flush=True)
+    print("END", flush=True)
     return {
         "task_id": obs.task_id,
         "task_type": obs.task_type.value if hasattr(obs.task_type, 'value') else obs.task_type,
@@ -36,6 +47,7 @@ def reset(req: ResetRequest = ResetRequest()):
 
 @app.post("/step")
 def step(req: StepRequest):
+    print("START", flush=True)
     from environment.state import Action, ActionType
     env = get_env()
     action = Action(
@@ -46,6 +58,8 @@ def step(req: StepRequest):
         retrieved_context_used=False,
     )
     obs, reward, done, info = env.step(action)
+    print("STEP action complete", flush=True)
+    print("END", flush=True)
     return {
         "task_id": obs.task_id,
         "feedback": obs.feedback,
@@ -69,6 +83,9 @@ def state():
 def health():
     return {"status": "ok"}
 
-if __name__ == "__main__":
+def main():
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+if __name__ == "__main__":
+    main()
